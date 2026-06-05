@@ -2,6 +2,10 @@
 .env
 *.pem
 
+# Demo assets (local only)
+demo-audio.mp3
+demo-script.txt
+
 # Dependencies
 node_modules/
 
