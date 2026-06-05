@@ -1,0 +1,15 @@
+VEIL Protocol is an autonomous Credit Default Swap settlement agent on Arbitrum Sepolia, powered by Terminal 3 verifiable identity.
+
+Here's the problem: in DeFi insurance, someone has to watch the oracle and trigger payouts. If that someone is a centralized bot, it can be bribed, DDoSed, or coerced. And when funds move, how do you prove the agent that triggered it was the real agent, not an attacker with a stolen key?
+
+VEIL solves both.
+
+The agent runs every 30 seconds. It reads the Chainlink ETH USD oracle, scans every active CDS position on-chain, and settles any position where the price drops below the trigger. If a position matures without being triggered, it expires it cleanly.
+
+Right now you're seeing it live. ETH is at 1665 dollars. Multiple CDS positions have trigger prices above that, so the agent is settling them automatically. Each settlement is a real transaction on Arbitrum Sepolia.
+
+What makes this different is the Terminal 3 integration. Every settlement, every expiration, every scan iteration is attested with a did t3n identity that's hardware verified inside a TEE. Even if someone steals the agent's private key, they cannot forge attestations from the TEE node. The identity is bound to the hardware, not the key.
+
+The dashboard shows everything: live ETH price, active CDS positions with buyer and seller addresses, settlement and expiration counts, and a full event log with T3N attestation status. It auto refreshes every two seconds. No page reloads, no flicker.
+
+VEIL Protocol. Autonomous finance. Verifiable identity. Zero trust required.

@@ -22,8 +22,12 @@ let sessionReady: boolean = false;
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const T3N_API_KEY = (process.env.T3N_API_KEY ?? "").trim();
-const T3N_BASE_URL = (process.env.T3N_BASE_URL ?? "").trim(); // optional, defaults to testnet
+function getT3nApiKey(): string {
+  return (process.env.T3N_API_KEY ?? "").trim();
+}
+function getT3nBaseUrl(): string {
+  return (process.env.T3N_BASE_URL ?? "").trim();
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -32,7 +36,8 @@ const T3N_BASE_URL = (process.env.T3N_BASE_URL ?? "").trim(); // optional, defau
  * Returns the agent's did:t3n:… identity.
  */
 export async function initT3n(): Promise<string> {
-  if (!T3N_API_KEY) {
+  const apiKey = getT3nApiKey();
+  if (!apiKey) {
     console.warn("[T3N] T3N_API_KEY not set — agent will run without verifiable identity");
     agentDid = "did:t3n:unauthenticated";
     return agentDid;
@@ -45,14 +50,14 @@ export async function initT3n(): Promise<string> {
     console.log("[T3N] Loading WASM component...");
     const wasmComponent = await loadWasmComponent();
 
-    const address = eth_get_address(T3N_API_KEY);
+    const address = eth_get_address(apiKey);
     console.log(`[T3N] Agent wallet address: ${address}`);
 
     client = new T3nClient({
-      baseUrl: T3N_BASE_URL || undefined,
+      baseUrl: getT3nBaseUrl() || undefined,
       wasmComponent,
       handlers: {
-        EthSign: metamask_sign(address, undefined, T3N_API_KEY),
+        EthSign: metamask_sign(address, undefined, apiKey),
       },
     });
 

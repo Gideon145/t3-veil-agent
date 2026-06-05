@@ -192,13 +192,15 @@ function dashboardHTML(): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VEIL Protocol — Agent Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='%23818cf8'/><stop offset='100%' stop-color='%233b82f6'/></linearGradient></defs><rect width='100' height='100' rx='20' fill='url(%23g)'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white'>V</text></svg>">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#06060e;--surface:#0c0c1d;--border:#1a1a33;--muted:#4b5563;--text:#d1d5db;--white:#f9fafb;
   --green:#10b981;--green-bg:#10b98115;--blue:#3b82f6;--blue-bg:#3b82f615;--amber:#f59e0b;--amber-bg:#f59e0b15;
   --purple:#818cf8;--purple-bg:#6366f115;--red:#ef4444;--red-bg:#ef444415}
 body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 20%,#3b82f608 0%,transparent 50%),radial-gradient(circle at 70% 80%,#818cf808 0%,transparent 50%);pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 20%,#3b82f608 0%,transparent 50%),radial-gradient(circle at 70% 80%,#818cf808 0%,transparent 50%);pointer-events:none;z-index:0;animation:bgShift 20s ease-in-out infinite alternate}
+@keyframes bgShift{0%{transform:translate(0,0)}100%{transform:translate(2%,1%)}}
 header{position:relative;z-index:1;background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .logo{display:flex;align-items:center;gap:10px}
 .logo-icon{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#818cf8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:1.1rem}
@@ -217,10 +219,17 @@ main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px 24p
 .tab:hover{color:var(--text)}
 .tab.active{background:var(--blue-bg);color:var(--blue);font-weight:600}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:border-color .2s}
-.card:hover{border-color:#ffffff10}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:all .3s;position:relative;overflow:hidden}
+.card::after{content:'';position:absolute;inset:0;border-radius:12px;opacity:0;transition:opacity .3s;pointer-events:none}
+.card:hover{border-color:#ffffff15;transform:translateY(-1px)}
+.card:hover::after{opacity:1}
+.card:nth-child(1):hover::after{box-shadow:0 0 30px #818cf810}
+.card:nth-child(3):hover::after{box-shadow:0 0 30px #10b98110}
+.card:nth-child(4):hover::after{box-shadow:0 0 30px #f59e0b10}
+.card:nth-child(2):hover::after{box-shadow:0 0 30px #3b82f610}
+.card:nth-child(6):hover::after{box-shadow:0 0 30px #ef444410}
 .card .label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.card .value{font-size:1.5rem;font-weight:700;color:var(--white)}
+.card .value{font-size:1.5rem;font-weight:700;color:var(--white);transition:transform .2s ease}
 .card .value.price{color:var(--purple)}
 .card .value.settle{color:var(--green)}
 .card .value.expire{color:var(--amber)}
@@ -393,30 +402,32 @@ async function refresh(){
     const s=await statusRes.json();
     data=s;
     data.cdsPositions=(await cdsRes.json()).positions||[];
-    // Cards
-    document.getElementById('vPrice').textContent='$'+s.lastPriceUSD;
-    document.getElementById('vPriceTime').textContent=s.lastIterationAt?fmtTime(s.lastIterationAt):'';
-    document.getElementById('vActive').textContent=s.activeCDS;
-    document.getElementById('vTotal').textContent='of '+s.totalCDS+' total';
-    document.getElementById('vSettled').textContent=s.settledCount;
-    document.getElementById('vExpired').textContent=s.expiredCount;
-    document.getElementById('vIter').textContent=s.iterations;
+    // Cards with pulse-on-change
+    const setVal=(id,val)=>{const el=document.getElementById(id);if(el.textContent!==val){el.textContent=val;el.style.transform='scale(1.08)';setTimeout(()=>el.style.transform='',200)}}
+    setVal('vPrice','$'+s.lastPriceUSD);
+    el('vPriceTime',s.lastIterationAt?fmtTime(s.lastIterationAt):'');
+    setVal('vActive',String(s.activeCDS));
+    el('vTotal','of '+s.totalCDS+' total');
+    setVal('vSettled',String(s.settledCount));
+    setVal('vExpired',String(s.expiredCount));
+    el('vIter',String(s.iterations));
     const runningSec=Math.floor((Date.now()-new Date(s.startTime).getTime())/1000);
-    document.getElementById('vUptime').textContent='Uptime: '+fmtUptime(Math.max(runningSec,0));
-    document.getElementById('vErrors').textContent=s.errors||0;
+    el('vUptime','Uptime: '+fmtUptime(Math.max(runningSec,0)));
+    el('vErrors',String(s.errors||0));
     // Badges
-    document.getElementById('liveBadge').innerHTML='<span class="status-dot"></span>AGENT LIVE · '+fmtUptime(Math.max(runningSec,0));
-    document.getElementById('t3nBadge').textContent=s.t3nDid?'T3N: '+s.t3nDid.slice(0,24)+'...':'T3N: DISABLED';
+    el('liveBadge','<span class="status-dot"></span>AGENT LIVE · '+fmtUptime(Math.max(runningSec,0)));
+    el('t3nBadge',s.t3nDid?'T3N: '+s.t3nDid.slice(0,24)+'...':'T3N: DISABLED');
     // About
-    document.getElementById('aboutWallet').textContent=s.wallet||'---';
-    document.getElementById('aboutDid').textContent=s.t3nDid||'---';
-    document.getElementById('aboutCds').textContent=s.cdsAddress||'---';
-    document.getElementById('aboutRpc').textContent=s.rpcUrl||'---';
+    el('aboutWallet',s.wallet||'---');
+    el('aboutDid',s.t3nDid||'---');
+    el('aboutCds',s.cdsAddress||'---');
+    el('aboutRpc',s.rpcUrl||'---');
     // Render
     renderEvents();
     renderPositions();
   }catch(e){console.error('Dashboard fetch error:',e)}
 }
+function el(id,h){document.getElementById(id).innerHTML=h}
 refresh();
 setInterval(refresh,2000);
 </script>
