@@ -4,6 +4,8 @@
 
 > _"Autonomous finance. Verifiable identity. Zero trust required."_
 
+🎥 **Demo Video:** https://youtu.be/tWEz6LLVpcA
+
 [![T3N](https://img.shields.io/badge/Terminal%203-T3N%20Verified-6366f1)](https://terminal3.io) [![Chain](https://img.shields.io/badge/Chain-Arbitrum%20Sepolia%20421421-blue)](https://sepolia.arbiscan.io) [![Agent](https://img.shields.io/badge/Agent-Autonomous%2024%2F7-brightgreen)]() [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)](https://www.typescriptlang.org/) [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
@@ -47,6 +49,7 @@ The agent is **stateless and permissionless** — anyone can call `checkAndSettl
 
 | Service | URL | Status |
 |---|---|---|
+| 🎥 Demo Video | https://youtu.be/tWEz6LLVpcA | YouTube |
 | Agent Dashboard | `http://localhost:3001` | Local (4-tab UI with live metrics, CDS positions, event log) |
 | Status API | `http://localhost:3001/status` | Local (JSON) |
 | CDS Positions API | `http://localhost:3001/cds` | Local (JSON) |
