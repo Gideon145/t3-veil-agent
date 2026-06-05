@@ -1,0 +1,20 @@
+# Keys & secrets
+.env
+*.pem
+
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temp scripts
+_setup_env.js
