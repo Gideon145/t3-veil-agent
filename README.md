@@ -47,7 +47,9 @@ The agent is **stateless and permissionless** — anyone can call `checkAndSettl
 
 | Service | URL | Status |
 |---|---|---|
-| Agent Status API | `http://localhost:3001/status` | Local |
+| Agent Dashboard | `http://localhost:3001` | Local (4-tab UI with live metrics, CDS positions, event log) |
+| Status API | `http://localhost:3001/status` | Local (JSON) |
+| CDS Positions API | `http://localhost:3001/cds` | Local (JSON) |
 | CDS Contract | [0xB2326A7A...](https://sepolia.arbiscan.io/address/0xB2326A7A1EA88054906b16783B12E451d1Af0791) | Arbitrum Sepolia |
 | T3N Identity | `did:t3n:eth:...` | T3N Testnet |
 
@@ -261,27 +263,22 @@ You should see:
 [T3N] Credits available: 20000
 ```
 
-### 4. Check Status
+### 4. Open Dashboard
+
+Open **http://localhost:3001** in your browser. The dashboard has four tabs:
+
+| Tab | Shows |
+|---|---|
+| **Overview** | Live ETH/USD price, active CDS count, settlements, expirations, agent uptime, recent event log |
+| **CDS Positions** | Every CDS position on-chain — buyer, seller, trigger price, status (Active/Settled/Expired) |
+| **Event Log** | Full scrollable event log with filters (Settlements / Expirations / Errors), color-coded, auto-refresh |
+| **About** | Protocol description, agent wallet address, T3N identity, contract address |
+
+### 5. Check API
 
 ```bash
-curl http://localhost:3001/status
-```
-
-Response:
-
-```json
-{
-  "ok": true,
-  "wallet": "0x...",
-  "t3nDid": "did:t3n:eth:0x...",
-  "iterations": 42,
-  "settledCount": 3,
-  "expiredCount": 1,
-  "activeCDS": 5,
-  "totalCDS": 9,
-  "lastPriceUSD": "1847.32"
-}
-```
+curl http://localhost:3001/status     # JSON: all metrics
+curl http://localhost:3001/cds        # JSON: individual CDS positions
 
 ---
 
