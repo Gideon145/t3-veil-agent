@@ -52,6 +52,7 @@ interface AgentStats {
   cdsAddress: string;
   rpcUrl: string;
   t3nDid: string;
+  events: string[];
 }
 
 const stats: AgentStats = {
@@ -68,13 +69,21 @@ const stats: AgentStats = {
   cdsAddress: CDS_ADDRESS,
   rpcUrl: RPC_URL,
   t3nDid: "",
+  events: [],
 };
+
+function pushEvent(kind: string, msg: string) {
+  const time = new Date().toISOString().replace("T", " ").substring(0, 19);
+  stats.events.unshift(`[${time}] ${kind}: ${msg}`);
+  if (stats.events.length > 100) stats.events.pop();
+}
 
 // — Logger —
 
 function log(level: "INFO" | "WARN" | "ERROR", msg: string) {
   const ts = new Date().toISOString().replace("T", " ").substring(0, 23);
   console.log(`${ts} [${level.padEnd(5)}] ${msg}`);
+  pushEvent(level, msg);
 }
 
 // — Agent loop —
@@ -150,19 +159,94 @@ async function runIteration(contract: ethers.Contract, wallet: ethers.Wallet) {
   log("INFO", `Iteration ${stats.iterations} done — total: ${stats.totalCDS}, active: ${active}, settled: ${stats.settledCount}, expired: ${stats.expiredCount}, did: ${stats.t3nDid || "disabled"}`);
 }
 
-// — Status HTTP server —
+// — Dashboard HTML (single-file, no dependencies) —
+
+function dashboardHTML(): string {
+  const s = stats;
+  const runningSec = Math.floor((Date.now() - new Date(s.startTime).getTime()) / 1000);
+  const eventsHTML = s.events.slice(0, 30).map(e => `<div class="ev">${e}</div>`).join("\n");
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VEIL Protocol — Agent Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+header{background:#0d0d1a;border-bottom:1px solid #1a1a2e;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;font-size:1.2rem;font-weight:700;color:#fff}
+.logo .dot{width:10px;height:10px;border-radius:50%;background:#10b981;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.badges{display:flex;gap:8px;flex-wrap:wrap}
+.badge{padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:600}
+.badge-live{background:#10b98120;color:#10b981;border:1px solid #10b98140}
+.badge-t3n{background:#6366f120;color:#818cf8;border:1px solid #6366f140}
+.badge-chain{background:#3b82f620;color:#60a5fa;border:1px solid #3b82f640}
+main{max-width:1200px;margin:0 auto;padding:24px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.card{background:#0d0d1a;border:1px solid #1a1a2e;border-radius:12px;padding:20px}
+.card .label{font-size:.75rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.card .value{font-size:1.6rem;font-weight:700;color:#f9fafb}
+.card .value.price{color:#818cf8}
+.card .value.settle{color:#10b981}
+.card .value.expire{color:#f59e0b}
+.card .value.active{color:#3b82f6}
+.terminal{background:#0d0d1a;border:1px solid #1a1a2e;border-radius:12px;overflow:hidden}
+.terminal-header{background:#111122;padding:10px 20px;font-size:.8rem;color:#6b7280;border-bottom:1px solid #1a1a2e;display:flex;justify-content:space-between;align-items:center}
+.terminal-body{max-height:400px;overflow-y:auto;padding:12px 20px;font-family:'Cascadia Code','Fira Code',monospace;font-size:.78rem;line-height:1.7}
+.ev{color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev:has(:contains("SETTLE")),.ev:has(:contains("EXPIRE")) {color:#10b981}
+.ev:has(:contains("ERROR")) {color:#ef4444}
+footer{padding:16px 24px;text-align:center;color:#4b5563;font-size:.75rem}
+.refresh{color:#6366f1}
+</style>
+</head>
+<body>
+<header>
+<div class="logo"><div class="dot"></div>VEIL Protocol — Agent Dashboard</div>
+<div class="badges">
+<span class="badge badge-live">● AGENT LIVE</span>
+<span class="badge badge-t3n">${s.t3nDid ? "T3N: "+s.t3nDid.slice(0,24)+"..." : "T3N: DISABLED"}</span>
+<span class="badge badge-chain">Arbitrum Sepolia</span>
+</div>
+</header>
+<main>
+<div class="cards">
+<div class="card"><div class="label">ETH/USD</div><div class="value price">$${s.lastPriceUSD}</div></div>
+<div class="card"><div class="label">Active CDS</div><div class="value active">${s.activeCDS} / ${s.totalCDS}</div></div>
+<div class="card"><div class="label">Settlements</div><div class="value settle">${s.settledCount}</div></div>
+<div class="card"><div class="label">Expirations</div><div class="value expire">${s.expiredCount}</div></div>
+<div class="card"><div class="label">Iterations</div><div class="value">${s.iterations}</div></div>
+<div class="card"><div class="label">Running</div><div class="value">${Math.floor(runningSec/60)}m ${runningSec%60}s</div></div>
+</div>
+<div class="terminal">
+<div class="terminal-header"><span>Agent Event Log</span><span class="refresh">Auto-refresh 2s</span></div>
+<div class="terminal-body">${eventsHTML || '<div class="ev">Waiting for events...</div>'}</div>
+</div>
+</main>
+<footer>VEIL Protocol · Autonomous CDS Settlement Agent · T3N Verifiable Identity</footer>
+<script>setTimeout(()=>location.reload(),2000)</script>
+</body>
+</html>`;
+}
+
+// — HTTP Server —
 
 function startStatusServer() {
   const server = http.createServer((req, res) => {
-    if (req.url === "/status" || req.url === "/") {
-      res.writeHead(200, { "Content-Type": "application/json" });
+    if (req.url === "/status") {
+      res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
       res.end(JSON.stringify({ ok: true, ...stats }, null, 2));
+    } else if (req.url === "/" || req.url === "/dashboard") {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(dashboardHTML());
     } else {
-      res.writeHead(404);
+      res.writeHead(404, { "Content-Type": "application/json" });
       res.end('{"error":"not found"}');
     }
   });
-  server.listen(STATUS_PORT, () => log("INFO", `Status server: http://0.0.0.0:${STATUS_PORT}/status`));
+  server.listen(STATUS_PORT, () => log("INFO", `Dashboard: http://0.0.0.0:${STATUS_PORT}`));
 }
 
 // — Banner —
